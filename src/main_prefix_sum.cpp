@@ -66,7 +66,7 @@ void calcPrefixSum(
         print(indent); print("Trivial\n");
         print(indent); printVec("A", a, abase, n, "\n");
         print(indent); print("---\n");
-        cuda::prefix_sum_simple(gpu::WorkSize(GROUP_SIZE, n), a, abase, c, cbase, n);
+        cuda::prefixsum_main(gpu::WorkSize(GROUP_SIZE, n), a, abase, c, cbase, n);
         print(indent); printVec("C", c, cbase, n, "\n");
         return;
     }
@@ -76,7 +76,7 @@ void calcPrefixSum(
     print(indent); print("Prepare\n");
     print(indent); printVec("A", a, abase, n, "\n");
     print(indent); print("---\n");
-    cuda::prefix_sum_prepare(gpu::WorkSize(GROUP_SIZE, n), a, abase, b, bbase, c, cbase, n);
+    cuda::prefixsum_pre(gpu::WorkSize(GROUP_SIZE, n), a, abase, b, bbase, c, cbase, n);
     print(indent); printVec("B", b, bbase, bsz, "\n");
     print(indent); printVec("C", c, cbase, n, "\n");
 
@@ -95,7 +95,7 @@ void calcPrefixSum(
     print(indent); printVec("B", b, bbase, bsz, "\n");
     print(indent); printVec("C", c, cbase, n, "\n");
     print(indent); print("---\n");
-    cuda::prefix_sum_post(gpu::WorkSize(GROUP_SIZE, n), b, bbase, c, cbase, n);
+    cuda::prefixsum_post(gpu::WorkSize(GROUP_SIZE, n), b, bbase, c, cbase, n);
     print(indent); printVec("C", c, cbase, n, "\n");
 
  }

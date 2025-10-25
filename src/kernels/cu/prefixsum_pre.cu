@@ -7,13 +7,16 @@
 #include "helpers/rassert.cu"
 #include "../defines.h"
 
-__global__ void prefix_sum_simple(
-    const unsigned int* a, // input n
+__global__ void prefixsum_pre(
+    const unsigned int* a, // input; n
+          unsigned int* b, // reduced buffer; ceil(n/GROUP_SIZE)
           unsigned int* c, // output; n
-    unsigned int n)
+          unsigned int n)
 {
     int i = threadIdx.x;
     int glob_i = blockIdx.x * blockDim.x + i;
+
+    // load in local
     __shared__ unsigned int locin[GROUP_SIZE];
     __shared__ unsigned int locout[GROUP_SIZE];
 
@@ -43,7 +46,13 @@ __global__ void prefix_sum_simple(
         __syncthreads();
         sz *= 2;
     }
-    
+
+    //load group sum to b
+    if (i == 0) {
+        int bi = blockIdx.x; // Group index
+        b[bi] = locout[GROUP_SIZE - 1];
+    }
+
     //load from local
     if (glob_i < n) {
         c[glob_i] = locout[i];;
@@ -51,15 +60,16 @@ __global__ void prefix_sum_simple(
 }
 
 namespace cuda {
-void prefix_sum_simple(const gpu::WorkSize &workSize, 
-    const gpu::gpu_mem_32u &a, unsigned int abase,
-    gpu::gpu_mem_32u &c, unsigned int cbase,
+void prefixsum_pre(const gpu::WorkSize &workSize,
+    const gpu::gpu_mem_32u &a, const unsigned int abase,
+    gpu::gpu_mem_32u &b, const unsigned int bbase,
+    gpu::gpu_mem_32u &c, const unsigned int cbase,
     unsigned int n)
 {
     gpu::Context context;
     rassert(context.type() == gpu::Context::TypeCUDA, 34523543124312, context.type());
     cudaStream_t stream = context.cudaStream();
-    ::prefix_sum_simple<<<workSize.cuGridSize(), workSize.cuBlockSize(), 0, stream>>>(a.cuptr() + abase, c.cuptr() + cbase, n);
+    ::prefixsum_pre<<<workSize.cuGridSize(), workSize.cuBlockSize(), 0, stream>>>(a.cuptr() + abase, b.cuptr() + bbase, c.cuptr() + cbase, n);
     CUDA_CHECK_KERNEL(stream);
 }
 } // namespace cuda

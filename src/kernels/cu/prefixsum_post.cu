@@ -8,7 +8,7 @@
 #include "helpers/rassert.cu"
 #include "../defines.h"
 
-__global__ void prefix_sum_post(
+__global__ void prefixsum_post(
     unsigned int* b, // reduced buffer;
     unsigned int* c, // output
     unsigned int n)
@@ -27,7 +27,7 @@ __global__ void prefix_sum_post(
 }
 
 namespace cuda {
-void prefix_sum_post(const gpu::WorkSize &workSize,
+void prefixsum_post(const gpu::WorkSize &workSize,
     gpu::gpu_mem_32u &b, const unsigned int bbase,
     gpu::gpu_mem_32u &c, const unsigned int cbase,
     unsigned int n)
@@ -35,7 +35,7 @@ void prefix_sum_post(const gpu::WorkSize &workSize,
     gpu::Context context;
     rassert(context.type() == gpu::Context::TypeCUDA, 34523543124312, context.type());
     cudaStream_t stream = context.cudaStream();
-    ::prefix_sum_post<<<workSize.cuGridSize(), workSize.cuBlockSize(), 0, stream>>>(b.cuptr() + bbase, c.cuptr() + cbase, n);
+    ::prefixsum_post<<<workSize.cuGridSize(), workSize.cuBlockSize(), 0, stream>>>(b.cuptr() + bbase, c.cuptr() + cbase, n);
     CUDA_CHECK_KERNEL(stream);
 }
 } // namespace cuda
