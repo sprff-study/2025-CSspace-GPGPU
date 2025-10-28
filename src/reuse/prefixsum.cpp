@@ -1,6 +1,6 @@
 #include "prefixsum.h"
 
-#include "kernels/defines.h"
+#include "defines.h"
 #include "wrappers.h"
 
 void calcPrefixSum(gpuptr::u32 a, gpuptr::u32 b, gpuptr::u32 c, unsigned int n,

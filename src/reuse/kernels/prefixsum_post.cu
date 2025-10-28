@@ -7,7 +7,7 @@
 
 #include "helpers/rassert.cu"
 #include "../defines.h"
-#include "../../wrappers.h"
+#include "../wrappers.h"
 
 __global__ void prefixsum_post(
     unsigned int* b, // reduced buffer;

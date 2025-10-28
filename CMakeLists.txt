@@ -100,9 +100,9 @@ if (GPU_CUDA_SUPPORT)
     # Вероятно вам стоит выставить в CMake options: -DCMAKE_CUDA_ARCHITECTURES=75 -DCMAKE_CUDA_FLAGS=-lineinfo (первое - чтобы включить поддержку WMMA, второе - чтобы compute-sanitizer и профилировщик знали номера строк кернела)
     set(CUDA_SOURCES
             src/kernels/cu/aplusb.cu
-            src/kernels/cu/prefixsum_pre.cu
-            src/kernels/cu/prefixsum_main.cu
-            src/kernels/cu/prefixsum_post.cu)
+            src/reuse/kernels/prefixsum_pre.cu
+            src/reuse/kernels/prefixsum_main.cu
+            src/reuse/kernels/prefixsum_post.cu)
 
     add_definitions(-DCUDA_SUPPORT)
     add_library(${PROJECT_NAME}_core STATIC ${SOURCES} ${CUDA_SOURCES} ${HEADERS})
@@ -114,7 +114,8 @@ else ()
 endif ()
 
 add_executable(main_aplusb     src/main_aplusb.cpp)
-add_executable(main_prefix_sum src/main_prefix_sum.cpp src/prefixsum.cpp)
+add_executable(main_prefix_sum src/main_prefix_sum.cpp 
+src/reuse/prefixsum.cpp)
 
 target_link_libraries(main_aplusb     ${PROJECT_NAME}_core)
 target_link_libraries(main_prefix_sum ${PROJECT_NAME}_core)

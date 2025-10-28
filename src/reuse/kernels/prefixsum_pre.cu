@@ -6,7 +6,7 @@
 
 #include "helpers/rassert.cu"
 #include "../defines.h"
-#include "../../wrappers.h"
+#include "../wrappers.h"
 
 __global__ void prefixsum_pre(
     const unsigned int* a, // input; n

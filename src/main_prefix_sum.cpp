@@ -7,7 +7,7 @@
 
 #include "kernels/defines.h"
 #include "kernels/kernels.h"
-#include "prefixsum.h"
+#include "reuse/prefixsum.h"
 
 
 void run(int argc, char** argv)
