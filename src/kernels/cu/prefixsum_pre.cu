@@ -6,6 +6,7 @@
 
 #include "helpers/rassert.cu"
 #include "../defines.h"
+#include "../../wrappers.h"
 
 __global__ void prefixsum_pre(
     const unsigned int* a, // input; n
@@ -60,16 +61,12 @@ __global__ void prefixsum_pre(
 }
 
 namespace cuda {
-void prefixsum_pre(const gpu::WorkSize &workSize,
-    const gpu::gpu_mem_32u &a, const unsigned int abase,
-    gpu::gpu_mem_32u &b, const unsigned int bbase,
-    gpu::gpu_mem_32u &c, const unsigned int cbase,
-    unsigned int n)
+void prefixsum_pre(const gpu::WorkSize& workSize, const gpuptr::u32 a, gpuptr::u32 b, gpuptr::u32 c, unsigned int n)
 {
     gpu::Context context;
     rassert(context.type() == gpu::Context::TypeCUDA, 34523543124312, context.type());
     cudaStream_t stream = context.cudaStream();
-    ::prefixsum_pre<<<workSize.cuGridSize(), workSize.cuBlockSize(), 0, stream>>>(a.cuptr() + abase, b.cuptr() + bbase, c.cuptr() + cbase, n);
+    ::prefixsum_pre<<<workSize.cuGridSize(), workSize.cuBlockSize(), 0, stream>>>(a.cuptr(), b.cuptr(), c.cuptr(), n);
     CUDA_CHECK_KERNEL(stream);
 }
 } // namespace cuda

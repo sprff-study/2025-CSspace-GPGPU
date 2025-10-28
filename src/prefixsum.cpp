@@ -1,6 +1,7 @@
 #include "prefixsum.h"
 
 #include "kernels/defines.h"
+#include "wrappers.h"
 
 void calcPrefixSum(
     gpu::gpu_mem_32u& a, unsigned int abase,
@@ -11,17 +12,17 @@ void calcPrefixSum(
 {
     int bsz = (n + GROUP_SIZE - 1) / GROUP_SIZE;
     if (n <= GROUP_SIZE) { // trivial
-        cuda::prefixsum_main(gpu::WorkSize(GROUP_SIZE, n), a, abase, c, cbase, n);
+        cuda::prefixsum_main(gpu::WorkSize(GROUP_SIZE, n), gpuptr::u32(a, abase), gpuptr::u32(c, cbase), n);
         return;
     }
-    cuda::prefixsum_pre(gpu::WorkSize(GROUP_SIZE, n), a, abase, b, bbase, c, cbase, n);
+    cuda::prefixsum_pre(gpu::WorkSize(GROUP_SIZE, n), gpuptr::u32(a, abase), gpuptr::u32(b, bbase), gpuptr::u32(c, cbase), n);
     // need to calculate pref for b[bbase;bbase+bsz)
     calcPrefixSum(
         b, bbase, // start is b[bbase]
         b, bbase + bsz, // buffer starts at b[bbase+bsz]
         b, bbase, // calulate prefsum inplace
         bsz, depth + 1);
-    cuda::prefixsum_post(gpu::WorkSize(GROUP_SIZE, n), b, bbase, c, cbase, n);
+    cuda::prefixsum_post(gpu::WorkSize(GROUP_SIZE, n),  gpuptr::u32(b, bbase), gpuptr::u32(c, cbase), n);
 }
 
 void prefixSum(gpu::gpu_mem_32u& in, gpu::gpu_mem_32u& out, gpu::gpu_mem_32u& buffer)
