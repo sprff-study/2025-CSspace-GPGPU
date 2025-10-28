@@ -21,6 +21,7 @@ void print(std::string s)
     }
     std::cout << s;
 }
+
 void printVec(std::string label, gpu::gpu_mem_32u& a, int base, int sz, std::string post)
 {
     if (!DEBUG) {
@@ -55,49 +56,18 @@ void calcPrefixSum(
 )
 {
     int bsz = (n + GROUP_SIZE - 1) / GROUP_SIZE;
-    std::string indent(depth * 4, ' ');
-
-    print(indent); print("Start Calc\n");
-    print(indent); printVec("A", a, abase, n, "\n");
-    print(indent); printVec("B", b, bbase, bsz, "\n");
-    print(indent); printVec("C", c, cbase, n, "\n");
-    
     if (n <= GROUP_SIZE) { //trivial
-        print(indent); print("Trivial\n");
-        print(indent); printVec("A", a, abase, n, "\n");
-        print(indent); print("---\n");
         cuda::prefixsum_main(gpu::WorkSize(GROUP_SIZE, n), a, abase, c, cbase, n);
-        print(indent); printVec("C", c, cbase, n, "\n");
         return;
     }
-
-
-
-    print(indent); print("Prepare\n");
-    print(indent); printVec("A", a, abase, n, "\n");
-    print(indent); print("---\n");
     cuda::prefixsum_pre(gpu::WorkSize(GROUP_SIZE, n), a, abase, b, bbase, c, cbase, n);
-    print(indent); printVec("B", b, bbase, bsz, "\n");
-    print(indent); printVec("C", c, cbase, n, "\n");
-
     // need to calculate pref for b[bbase;bbase+bsz)
-    print(indent); print("Recurse\n");
-    print(indent); printVec("B", b, bbase, bsz, "\n");
-    print(indent); print("---\n");
     calcPrefixSum(
         b, bbase, // start is b[bbase]
         b, bbase + bsz, //buffer starts at b[bbase+bsz] 
         b, bbase, // calulate prefsum inplace
         bsz, depth + 1); 
-    print(indent); printVec("B", b, bbase, bsz, "\n");
-
-    print(indent); print("Post\n");
-    print(indent); printVec("B", b, bbase, bsz, "\n");
-    print(indent); printVec("C", c, cbase, n, "\n");
-    print(indent); print("---\n");
     cuda::prefixsum_post(gpu::WorkSize(GROUP_SIZE, n), b, bbase, c, cbase, n);
-    print(indent); printVec("C", c, cbase, n, "\n");
-
  }
 
 void run(int argc, char** argv)
