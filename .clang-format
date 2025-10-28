@@ -1,2 +1,3 @@
 # .clang-format
-BasedOnStyle: WebKit
+BasedOnStyle: Google
+IndentWidth: 4
