@@ -1,5 +1,6 @@
 #pragma once
 
 #include "kernels/kernels.h"
+#include "wrappers.h"
 
-void prefixSum(gpu::gpu_mem_32u& in, gpu::gpu_mem_32u& out, gpu::gpu_mem_32u& buffer);
+void prefixSum(gpuptr::u32 in, gpuptr::u32 out, gpuptr::u32 buffer);

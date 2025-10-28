@@ -28,14 +28,21 @@ public:
         return a;
     }
 
+    int size() const
+    {
+        return buffer_.number() - base_;
+    }
+    
     auto cuptr()
     {
         return buffer_.cuptr() + base_;
     }
+
     auto cuptr() const
     {
         return buffer_.cuptr() + base_;
     }
+
 private:
     gpu::gpu_mem_32u& buffer_;
     unsigned int base_;

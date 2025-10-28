@@ -25,7 +25,7 @@ void calcPrefixSum(
     cuda::prefixsum_post(gpu::WorkSize(GROUP_SIZE, n), b, c, n);
 }
 
-void prefixSum(gpu::gpu_mem_32u& in, gpu::gpu_mem_32u& out, gpu::gpu_mem_32u& buffer)
+void prefixSum(gpuptr::u32 in, gpuptr::u32 out, gpuptr::u32 buffer)
 {
-    calcPrefixSum(gpuptr::u32(in, 0), gpuptr::u32(buffer, 0), gpuptr::u32(out, 0), in.number(), 0);
+    calcPrefixSum(in, buffer, out, in.size(), 0);
 }

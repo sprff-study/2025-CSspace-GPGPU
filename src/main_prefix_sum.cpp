@@ -25,8 +25,8 @@ void run(int argc, char** argv)
     }
 
     // Аллоцируем буферы в VRAM
-    gpu::gpu_mem_32u input_gpu(n), buffer(2 * n), prefix_sum_accum_gpu(n);
-
+    gpu::gpu_mem_32u input_gpu(n), buffer_gpu(2 * n), prefix_sum_accum_gpu(n);
+    gpuptr::u32 in(input_gpu), buffer(buffer_gpu), out(prefix_sum_accum_gpu);
     // Прогружаем входные данные по PCI-E шине: CPU RAM -> GPU VRAM
     input_gpu.writeN(as.data(), n);
 
@@ -34,7 +34,7 @@ void run(int argc, char** argv)
     std::vector<double> times;
     for (int iter = 0; iter < 10; ++iter) {
         timer t;
-        prefixSum(input_gpu, prefix_sum_accum_gpu, buffer);
+        prefixSum(in, out, buffer);
         times.push_back(t.elapsed());
     }
     std::cout << "prefix sum times (in seconds) - " << stats::valuesStatsLine(times) << std::endl;
