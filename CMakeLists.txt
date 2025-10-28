@@ -114,7 +114,7 @@ else ()
 endif ()
 
 add_executable(main_aplusb     src/main_aplusb.cpp)
-add_executable(main_prefix_sum src/main_prefix_sum.cpp)
+add_executable(main_prefix_sum src/main_prefix_sum.cpp src/prefixsum.cpp)
 
 target_link_libraries(main_aplusb     ${PROJECT_NAME}_core)
 target_link_libraries(main_prefix_sum ${PROJECT_NAME}_core)

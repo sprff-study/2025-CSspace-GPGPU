@@ -7,106 +7,19 @@
 
 #include "kernels/defines.h"
 #include "kernels/kernels.h"
+#include "prefixsum.h"
 
-#include <fstream>
-#include <iomanip>
-
-#define DEBUG false
-// #define DEBUG true
-
-void print(std::string s)
-{
-    if (!DEBUG) {
-        return;
-    }
-    std::cout << s;
-}
-
-void printVec(std::string label, gpu::gpu_mem_32u& a, int base, int sz, std::string post)
-{
-    if (!DEBUG) {
-        return;
-    }
-    std::cout << label;
-    std::cout << '[' <<a.cuptr() + base << ", " << a.cuptr() + base + sz  << ')';
-    std::cout <<": ";
-    auto tmp = a.readVector();
-    for (int i = 0; i < sz; ++i) {
-        if (base + i == tmp.size()) {
-            std::cout << "OUT OF BOUND";
-            break;
-        }
-        std::cout << std::setw(4) <<  tmp[base + i] << ' ';
-    }
-    if (base + sz == tmp.size()) {
-        std::cout << "[OUT OF BOUND]";
-    } else {
-        std::cout << "["<< tmp[base+sz] <<"]";
-    }
-    std::cout << post;
-}
-
-
-void calcPrefixSum(
-    gpu::gpu_mem_32u& a, unsigned int abase,
-    gpu::gpu_mem_32u& b, unsigned int bbase,
-    gpu::gpu_mem_32u& c, unsigned int cbase,
-    unsigned int n,
-    unsigned int depth
-)
-{
-    int bsz = (n + GROUP_SIZE - 1) / GROUP_SIZE;
-    if (n <= GROUP_SIZE) { //trivial
-        cuda::prefixsum_main(gpu::WorkSize(GROUP_SIZE, n), a, abase, c, cbase, n);
-        return;
-    }
-    cuda::prefixsum_pre(gpu::WorkSize(GROUP_SIZE, n), a, abase, b, bbase, c, cbase, n);
-    // need to calculate pref for b[bbase;bbase+bsz)
-    calcPrefixSum(
-        b, bbase, // start is b[bbase]
-        b, bbase + bsz, //buffer starts at b[bbase+bsz] 
-        b, bbase, // calulate prefsum inplace
-        bsz, depth + 1); 
-    cuda::prefixsum_post(gpu::WorkSize(GROUP_SIZE, n), b, bbase, c, cbase, n);
- }
 
 void run(int argc, char** argv)
 {
-    // chooseGPUVkDevices:
-    // - Если не доступо ни одного устройства - кинет ошибку
-    // - Если доступно ровно одно устройство - вернет это устройство
-    // - Если доступно N>1 устройства:
-    //   - Если аргументов запуска нет или переданное число не находится в диапазоне от 0 до N-1 - кинет ошибку
-    //   - Если аргумент запуска есть и он от 0 до N-1 - вернет устройство под указанным номером
     gpu::Device device = gpu::chooseGPUDevice(gpu::selectAllDevices(ALL_GPUS, true), argc, argv);
-
-    // TODO 000 сделайте здесь свой выбор API - если он отличается от OpenCL то в этой строке нужно заменить TypeOpenCL на TypeCUDA или TypeVulkan
-    // TODO 000 после этого изучите этот код, запустите его, изучите соответсвующий вашему выбору кернел - src/kernels/<ваш выбор>/aplusb.<ваш выбор>
-    // TODO 000 P.S. если вы выбрали CUDA - не забудьте установить CUDA SDK и добавить -DCUDA_SUPPORT=ON в CMake options
-    // TODO 010 P.S. так же в случае CUDA - добавьте в CMake options (НЕ меняйте сами CMakeLists.txt чтобы не менять окружение тестирования):
-    // TODO 010 "-DCMAKE_CUDA_ARCHITECTURES=75 -DCMAKE_CUDA_FLAGS=-lineinfo" (первое - чтобы включить поддержку WMMA, второе - чтобы compute-sanitizer и профилировщик знали номера строк кернела)
     gpu::Context context = activateContext(device, gpu::Context::TypeCUDA);
-    // OpenCL - рекомендуется как вариант по умолчанию, можно выполнять на CPU, есть printf, есть аналог valgrind/cuda-memcheck - https://github.com/jrprice/Oclgrind
-    // CUDA   - рекомендуется если у вас NVIDIA видеокарта, есть printf, т.к. в таком случае вы сможете пользоваться профилировщиком (nsight-compute) и санитайзером (compute-sanitizer, это бывший cuda-memcheck)
-    // Vulkan - не рекомендуется, т.к. писать код (compute shaders) на шейдерном языке GLSL на мой взгляд менее приятно чем в случае OpenCL/CUDA
-    //          если же вас это не останавливает - профилировщик (nsight-systems) при запуске на NVIDIA тоже работает (хоть и менее мощный чем nsight-compute)
-    //          кроме того есть debugPrintfEXT(...) для вывода в консоль с видеокарты
-    //          кроме того используемая библиотека поддерживает rassert-проверки (своеобразные инварианты с уникальным числом) на видеокарте для Vulkan
-
-    ocl::KernelSource ocl_fill_with_zeros(ocl::getFillBufferWithZeros());
-    ocl::KernelSource ocl_sum_reduction(ocl::getPrefixSum01Reduction());
-    ocl::KernelSource ocl_prefix_accumulation(ocl::getPrefixSum02PrefixAccumulation());
-
-    avk2::KernelSource vk_fill_with_zeros(avk2::getFillBufferWithZeros());
-    avk2::KernelSource vk_sum_reduction(avk2::getPrefixSum01Reduction());
-    avk2::KernelSource vk_prefix_accumulation(avk2::getPrefixSum02PrefixAccumulation());
-
+    
     unsigned int n = 100'000'000;
     std::vector<unsigned int> as(n, 0);
     size_t total_sum = 0;
     for (size_t i = 0; i < n; ++i) {
         as[i] = (3 * (i + 5) + 7) % 17;
-        // as[i] = 1;
         total_sum += as[i];
         rassert(total_sum < std::numeric_limits<unsigned int>::max(), 5462345234231, total_sum, as[i], i); // ensure no overflow
     }
@@ -121,30 +34,7 @@ void run(int argc, char** argv)
     std::vector<double> times;
     for (int iter = 0; iter < 10; ++iter) {
         timer t;
-
-        // Запускаем кернел, с указанием размера рабочего пространства и передачей всех аргументов
-        // Если хотите - можете удалить ветвление здесь и оставить только тот код который соответствует вашему выбору API
-        if (context.type() == gpu::Context::TypeOpenCL) {
-            // TODO
-            throw std::runtime_error(CODE_IS_NOT_IMPLEMENTED);
-            // ocl_fill_with_zeros.exec();
-            // ocl_sum_reduction.exec();
-            // ocl_prefix_accumulation.exec();
-        } else if (context.type() == gpu::Context::TypeCUDA) {
-            calcPrefixSum(input_gpu, 0, buffer, 0, prefix_sum_accum_gpu, 0, n, 0);
-            // cuda::fill_buffer_with_zeros();
-            // cuda::prefix_sum_01_sum_reduction();
-            // cuda::prefix_sum_02_prefix_accumulation();
-        } else if (context.type() == gpu::Context::TypeVulkan) {
-            // TODO
-            throw std::runtime_error(CODE_IS_NOT_IMPLEMENTED);
-            // vk_fill_with_zeros.exec();
-            // vk_sum_reduction.exec();
-            // vk_prefix_accumulation.exec();
-        } else {
-            rassert(false, 4531412341, context.type());
-        }
-
+        prefixSum(input_gpu, prefix_sum_accum_gpu, buffer);
         times.push_back(t.elapsed());
     }
     std::cout << "prefix sum times (in seconds) - " << stats::valuesStatsLine(times) << std::endl;
